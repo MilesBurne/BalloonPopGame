@@ -99,9 +99,9 @@ def levelpoint_display(gameDisplay, points, level):
     myFont = pygame.font.SysFont(font_name,20) #init the font itself, form(font_name, size)
     #rendering text, creates surface with input: text, anti-alias, rgb colour
     pre_points_surface = myFont.render(pre_points_text, True, (0,0,0)) 
-    points_surface = myFont.render(points_text, True, ((193, 152, 17)))
+    points_surface = myFont.render(points_text, True, ((239, 26, 26)))
     pre_level_surface = myFont.render(pre_level_text, True, (0,0,0)) 
-    level_surface = myFont.render(level_text, True, ((193, 152, 17)))
+    level_surface = myFont.render(level_text, True, ((239, 26, 26)))
     #creates width and height of surface
     text_width = max((pre_points_surface.get_rect()[2]+points_surface.get_rect()[2]),(pre_level_surface.get_rect()[2]+level_surface.get_rect()[2]))
     text_height = (pre_points_surface.get_rect()[3]+pre_level_surface.get_rect()[3])
