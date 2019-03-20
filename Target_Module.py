@@ -46,7 +46,7 @@ class Target():
         #defines the values each variable will change by
         speed_change = 0.1
         variance_change = 0.1
-        size_change = -5
+        size_change = -10
         size_minimum = 10
         max_speed = 6.0
         #picks a random number 
@@ -58,6 +58,10 @@ class Target():
             self.variance += variance_change
         elif random_difficult == 2 and self.size > size_minimum:#changes size if size is greater than a minimum
             self.size += size_change
+            self.image = self.pygame.transform.smoothscale(self.image,(self.size,self.size))
+            self.rect = self.image.get_rect()
+            self.rect.centerx, self.rect.bottom = self.reset_rect[0], self.reset_rect[1] #changing position of rect to blit object
+            print(self.size)
         else: #otherwise size is less than or equal to minimum therefore:
             self.variance += variance_change
         #changes the size of rect to ensure that collison still works
