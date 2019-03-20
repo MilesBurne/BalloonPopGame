@@ -29,8 +29,9 @@ class Projectile():
         #used to control when the projectile is moving
         self.moving = False
         
-    #first move to display ball, blits the ball at position 1
+    #first move to display ball
     def first_move(self):
+        #blits projectile at position 1
         self.gameDisplay.blit(self.image, self.reset_pos)
 
         
@@ -87,15 +88,4 @@ class Projectile():
             #blits projectile where it should start
             self.gameDisplay.blit(self.image, self.reset_pos)
             return(has_moved)
-        
-        #method to return the data of the projectile
-        def get_data(self):
-            return(self.speed,self.variance,self.size)
-        
-        #method to change the data of the projectile
-        def change_data(self, speed, variance, size):
-            self.speed = speed
-            self.variance = variance
-            self.size = size
-         
-            
+   

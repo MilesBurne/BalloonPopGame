@@ -30,30 +30,36 @@ class Target():
         self._left_toggle = [False, False, True, True, True, False] #used to control whether the target goes left or right on next motion.
         self._left_toggle_count = 0
 
+        #variable to toggle if balloon is hit
+        self.target_hit = True
+        
+    #method to get if balloon hit
+    def is_target_hit(self):
+        return(self.target_hit)
+    
+    #method to change if balloon hit
+    def set_target_hit(self,hit):
+        self.target_hit = hit
+        
     #private method used on collision with another rect
-    def _collide(self):
+    def collide(self):
         #defines the values each variable will change by
         speed_change = 0.1
         variance_change = 0.1
         size_change = -5
         size_minimum = 10
+        max_speed = 6.0
         #picks a random number 
         random_difficult = self.random.randint(0,2)
         #changes speed
-        if random_difficult == 0:#changes speed
+        if random_difficult == 0 and self.speed < max_speed:#changes speed
             self.speed += speed_change
         elif random_difficult == 1:#changes variance
             self.variance += variance_change
         elif random_difficult == 2 and self.size > size_minimum:#changes size if size is greater than a minimum
             self.size += size_change
         else: #otherwise size is less than or equal to minimum therefore:
-            #picks a random number
-            random_difficult = self.random.randint(0,1)
-            #changes again if none have been selected
-            if random_difficult == 0:#changes size
-                self.speed += speed_change
-            elif random_difficult == 1:#changes variance
-                self.variance += variance_change
+            self.variance += variance_change
         #changes the size of rect to ensure that collison still works
         self.rect.w,self.rect.h = self.image.get_rect().w,self.image.get_rect().h
 
@@ -82,7 +88,7 @@ class Target():
     def detect_collision(self, collide_rect):
         #tests if target rect has collided with another rect
         if self.rect.colliderect(collide_rect) == True:
-            self._collide() #calls the collide method
+            self.target_hit = True
             return(True) #returns True if collision is detected
         else:
             return(False)
