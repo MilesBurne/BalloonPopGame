@@ -1,15 +1,16 @@
-#main draft 3 by Miles Burne 19/3/19
+#main draft 4 by Miles Burne 19/3/19
 #imports
 import pygame
 #custom imports
 from Quadratic_Module import * 
 from Projectile_Module import *
 from Target_Module import *
+from Save_Module import *
 
 #game class to handle the running of the game
 class Game():
     #init, takes screen dimensions as (width,height), and points and level
-    def __init__(self,screen_dimensions,points=0,level=1):
+    def __init__(self,screen_dimensions,points=0,level=1,from_save=False):
         #getting dimensions for screen
         self.screen_dimensions = screen_dimensions
         self.s_width, self.s_height = screen_dimensions[0], screen_dimensions[1]
@@ -28,6 +29,37 @@ class Game():
         #creates default starting x position for target
         self.default_target_start = ((self.screen_dimensions[0]/16*15),(self.screen_dimensions[1]/4*3))
         self.next_target_start = 15/16
+        #creates the game, also calls 'create_loaded_game' if the game has been loaded from a save
+        self.create_game()
+        #checking if game has been created from a save or not
+        if from_save == True:
+            self.create_loaded_game()
+
+    #creates the games objects
+    def create_game(self):
+        #init pygame
+        pygame.init()
+        #draws the game
+        self.draw_game()
+        #adds a name for the window
+        pygame.display.set_caption("Balloon Pop")
+        #creates default a and b values 
+        self.quad_a = -0.1
+        self.quad_b = 80
+        #creates start positions for object projectile
+        projectile_start = (0,(self.screen_dimensions[1]/4*3))
+        #instantiate quadratic object by calling make_quadratic function
+        self.make_quadratic(self.quad_a,self.quad_b)
+        #instantiate balloon object
+        self.Target_List.append(Target(self.gameDisplay, self.default_target_start))
+        self.Projectile = Projectile(self.gameDisplay, projectile_start,self.Quadratic)
+
+    #is run if the game detects it is loaded from a save
+    def create_loaded_game(self):
+        #increases the level of the game procedurally
+        for x in range(1,self.level+1):
+            self.increase_difficulty(x)
+            
         
     #creates the board and draws the axes
     def draw_game(self):
@@ -192,7 +224,6 @@ class Game():
                 self.points += 10 #10 points per hit
                 #creates hit_list
                 hit_list = self.create_hit_list()
-                print(hit_list)
                 #checks if level can increase
                 if False not in hit_list:
                     self.points += 100
@@ -205,12 +236,17 @@ class Game():
         return(collided)
 
 
-    #method to increase the difficulty of the game
-    def increase_difficulty(self):
+    #method to increase the difficulty of the game, takes artificial_level as a default value of 0
+    def increase_difficulty(self,artificial_level=0):
+        #used for leveling up from a save file, if the level passed in is not 0
+        if artificial_level != 0:
+            level = artificial_level
+        else:
+            level = self.level
         #hides quadratic if level correct
-        if self.level >= self.quadratic_hide_level:
+        if level >= self.quadratic_hide_level:
             self.show_quadratic_toggle = False
-        if self.level in self.add_target_level:
+        if level in self.add_target_level:
             self.next_target_start -= 2/16
             target_start = ((self.screen_dimensions[0]*(self.next_target_start)),self.default_target_start[1])
             self.Target_List.append(Target(self.gameDisplay, target_start))
@@ -224,25 +260,16 @@ class Game():
         for x in self.Target_List:
             #moves target
             x.move()
+
+    #returns points and level if the game is quit before loss
+    def save_game(self):
+        return(self.points,self.level)
         
     #main portion of the game, acts as a main loop
     def run_game(self):
-        #init pygame
-        pygame.init()
-        #draws the game
-        self.draw_game()
-        #adds a name for the window
-        pygame.display.set_caption("Balloon Pop")
-        #creates default a and b values 
-        quad_a = -0.1
-        quad_b = 80
-        #creates start positions for object projectile
-        projectile_start = (0,(self.screen_dimensions[1]/4*3))
-        #instantiate quadratic object by calling make_quadratic function
-        self.make_quadratic(quad_a,quad_b)
-        #instantiate balloon object
-        self.Target_List.append(Target(self.gameDisplay, self.default_target_start))
-        self.Projectile = Projectile(self.gameDisplay, projectile_start,self.Quadratic)
+        #creating variables that change the equation
+        quad_a = self.quad_a
+        quad_b = self.quad_b
         #controls movement of the projectile
         projectile_motion = False
         #creates the main game loop
