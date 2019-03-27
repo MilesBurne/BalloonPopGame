@@ -67,3 +67,7 @@ class Wall():
         else:
             #blits rect to screen
             self.gameDisplay.blit(self.image, self.rect)
+
+    #returns height of wall
+    def get_height(self):
+        return(self.rect[3])

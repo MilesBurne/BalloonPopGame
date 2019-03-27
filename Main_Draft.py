@@ -1,6 +1,26 @@
 #main draft 5 by Miles Burne 19/3/19
 #imports
+'''
+#programatically going through A values
+        while not_found:
+            a_possible = random.randint(0,30)
+            a_possible = -1*(a_possible/1000)
+            #print(a_possible)
+            #programatically going through B values
+            for b_value in range(1,200):
+                b_value = b_value/100
+                #( ( (-1* (b**2) ) / (4*a)) + c) > self.Wall.get_height()
+                #(-1*(c/self.Crate.get_actual_coords()[0])-((self.Crate.get_actual_coords()[0]*a_possible)/b_value)) > math.sqrt((4*a_possible)*(c-self.Wall.get_height()))
+                if(-1*(c/self.Crate.get_actual_coords()[0])-((self.Crate.get_actual_coords()[0]*a_possible)/b_value)) < math.sqrt((4*a_possible)*(c-self.Wall.get_height())):
+                    #therefore inequality is valid
+                    usable = True
+            if usable == True:
+                break
+        self.quad_a = a_possible
+'''
 import pygame
+import random
+import math
 #custom imports
 from Quadratic_Module import * 
 from Projectile_Module import *
@@ -27,6 +47,8 @@ class Game():
         self.Wall = 0
         #toggle for crate level
         self.crate_level = False
+        #creates the target b for the crate
+        self.crate_target_b = 0
         #variables to control difficulty
         self.quadratic_hide_level = 5 #game hides quadratic on this level
         self.show_quadratic_toggle = True
@@ -62,6 +84,19 @@ class Game():
         self.Crate = Crate(self.gameDisplay)
         self.Wall = Wall(self.gameDisplay)
 
+    #creates equation for crate hitting
+    def create_crate_equation(self,c=9.7):
+        #defining variables to be used
+        wall_height = self.Wall.get_height() +50 #maximum a little higher than wall height
+        ball_height = self.Quadratic.get_c()
+        crate_distance = self.Crate.get_actual_coords().midbottom[0]
+        #formuli to find A and B 
+        A_find = ((2/(crate_distance**2))*(ball_height-(2*wall_height)))
+        B_find = ((-1/crate_distance)*((A_find*(crate_distance**2)) + ball_height))
+        self.quad_a = round(A_find,4)*100
+        self.crate_target_b = round(B_find,1)
+        print(self.crate_target_b)
+
     #is run if the game detects it is loaded from a save
     def create_loaded_game(self):
         #increases the level of the game procedurally
@@ -87,8 +122,8 @@ class Game():
     #this displays the quadratic equation to the screen
     def show_quadratic(self):
         #getting a and b and multiplying by ten to make the program more readable
-        a = self.Quadratic.get_a()*100
-        b = int(self.Quadratic.get_b()*100)
+        a = self.Quadratic.get_a()#*100
+        b = self.Quadratic.get_b()#*100)
         c = self.Quadratic.get_c()
         #splitting the text into multiple portions to allow for multiple colours, also rounds a and b to ensure they arent too large
         a_text = (str(round(a, 4)))
@@ -176,9 +211,9 @@ class Game():
         #creating the location for the coords display
         target_location = (crate_location.midbottom[0],crate_location.midbottom[1]+20)
         #creating the text to be displayed
-        pre_x_string = ("(0,")
+        pre_x_string = ("(")
         x_string = str(self.Crate.get_relative_coords()[0])
-        post_x_string = (")")
+        post_x_string = (",0)")
         #getting font
         pygame.font.init() #init the font module
         font_name = "calibri" #naming the font used 
@@ -314,13 +349,15 @@ class Game():
         if level >= self.quadratic_hide_level:
             self.show_quadratic_toggle = False
         if level%5 == 0:
-            print("go")
+            #print("go")
             #creates toggle for crate level
             self.crate_level = True 
             #hide all the targets
             self.hide_show_targets(False)
             #create the crate at new position
             self.Crate.create_new_location()
+            #creates the new equation
+            self.create_crate_equation()
             #create the wall at new position
             self.Wall.set_visible(True)
         if level in self.add_target_level:
@@ -346,20 +383,19 @@ class Game():
         
     #main portion of the game, acts as a main loop
     def run_game(self):
-        #creating variables that change the equation
-        quad_a = self.quad_a
-        quad_b = self.quad_b
         #controls movement of the projectile
         projectile_motion = False
         #creates the main game loop
         running = True
         while running:
+            #print(self.quad_a)
             #updates screen after every gameloop
             pygame.display.flip()
             #draws the main screen to prevent overlaps
             self.draw_game()
             #updates quadratic with new values using the make_quadratic function and an optional value
-            self.make_quadratic(quad_a,quad_b)
+            self.make_quadratic(self.quad_a,self.quad_b)
+            #print(self.Quadratic.get_a())
             #draws the quadratic path and equation for the first time, shows quadratic if toggle is true
             if self.show_quadratic_toggle == True:
                 self.draw_quadratic()
@@ -400,19 +436,26 @@ class Game():
                         break
 
                     #changing A
-                    if event.key == pygame.K_UP and projectile_motion == False:
-                        quad_a += 0.01
-                    if event.key == pygame.K_DOWN and projectile_motion == False:
-                        quad_a -= 0.01
+                    if self.level % 5 != 0:
+                        if event.key == pygame.K_UP and projectile_motion == False:
+                            self.quad_a += 0.01
+                        if event.key == pygame.K_DOWN and projectile_motion == False:
+                            self.quad_a -= 0.01
                     #making sure that A is in a valid range, only needs to change when A is changed
-                    if quad_a > 0:
-                        quad_a = 0
+                    if self.quad_a > 0:
+                        self.quad_a = 0
                     
                     #changing B
                     if event.key == pygame.K_LEFT and projectile_motion == False:
-                        quad_b -= 1
+                        if self.level % 5 != 0:
+                            self.quad_b -= 1
+                        else:
+                            self.quad_b -= 1
                     if event.key == pygame.K_RIGHT and projectile_motion == False:
-                        quad_b += 1
+                        if self.level % 5 != 0:
+                            self.quad_b += 1
+                        else:
+                            self.quad_b += 1
                     
                     #launching projectile
                     if event.key == pygame.K_SPACE:

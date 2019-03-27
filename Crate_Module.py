@@ -59,7 +59,7 @@ class Crate():
     def create_new_location(self): #coords will be mapped from rect.bottom
         #creating the y value, and the maximum and minimum x values, all values are rounded with int to allow coord use
         y_value = int((self.display_h*3/4) + 0) # game floor starts at 3/4 * display height
-        minimum_x_value = int((self.display_w*1/3) + self.size[0]/2) #wall starts at 1/3 * display width and coords are for centre of block
+        minimum_x_value = int((self.display_w*1/3) + self.size[0]*2) #wall starts at 1/3 * display width and coords are for centre of block
         maximum_x_value = int((self.display_w) - self.size[1]/2) #end of screen as coords are mapped from block centre
         #creates x value with random module
         x_value = self.random.randint(minimum_x_value,maximum_x_value)
