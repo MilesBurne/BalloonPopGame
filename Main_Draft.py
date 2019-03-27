@@ -1,4 +1,4 @@
-#main draft 4 by Miles Burne 19/3/19
+#main draft 5 by Miles Burne 19/3/19
 #imports
 import pygame
 #custom imports
@@ -6,6 +6,8 @@ from Quadratic_Module import *
 from Projectile_Module import *
 from Target_Module import *
 from Save_Module import *
+from Crate_Module import *
+from Wall_Module import *
 
 #game class to handle the running of the game
 class Game():
@@ -21,6 +23,10 @@ class Game():
         self.Target_List = []
         self.Projectile = 0
         self.Quadratic = 0
+        self.Crate = 0
+        self.Wall = 0
+        #toggle for crate level
+        self.crate_level = False
         #variables to control difficulty
         self.quadratic_hide_level = 5 #game hides quadratic on this level
         self.show_quadratic_toggle = True
@@ -50,16 +56,17 @@ class Game():
         projectile_start = (0,(self.screen_dimensions[1]/4*3))
         #instantiate quadratic object by calling make_quadratic function
         self.make_quadratic(self.quad_a,self.quad_b)
-        #instantiate balloon object
+        #instantiate objects
         self.Target_List.append(Target(self.gameDisplay, self.default_target_start))
         self.Projectile = Projectile(self.gameDisplay, projectile_start,self.Quadratic)
+        self.Crate = Crate(self.gameDisplay)
+        self.Wall = Wall(self.gameDisplay)
 
     #is run if the game detects it is loaded from a save
     def create_loaded_game(self):
         #increases the level of the game procedurally
         for x in range(1,self.level+1):
             self.increase_difficulty(x)
-            
         
     #creates the board and draws the axes
     def draw_game(self):
@@ -160,6 +167,43 @@ class Game():
         #renders to game display
         self.gameDisplay.blit(text_surface, (0,0))
 
+    #draws the relative coords for the crate to the screen
+    def relative_coord_display(self):
+        #colour for the x part of coords
+        x_colour = (19, 62, 219)
+        #getting the location of the crate as rect
+        crate_location = self.Crate.get_actual_coords()
+        #creating the location for the coords display
+        target_location = (crate_location.midbottom[0],crate_location.midbottom[1]+20)
+        #creating the text to be displayed
+        pre_x_string = ("(0,")
+        x_string = str(self.Crate.get_relative_coords()[0])
+        post_x_string = (")")
+        #getting font
+        pygame.font.init() #init the font module
+        font_name = "calibri" #naming the font used 
+        myFont = pygame.font.SysFont(font_name,20) #init the font itself, form(font_name, size)
+        #rendering text, creates surface with input: text, anti-alias, rgb colour
+        pre_x_surface = myFont.render(pre_x_string, True, (0,0,0)) 
+        x_surface = myFont.render(x_string, True, (x_colour))
+        post_x_surface = myFont.render(post_x_string, True, (0,0,0))
+        #creates width and height of surface
+        text_width = (pre_x_surface.get_rect()[2]+x_surface.get_rect()[2]+post_x_surface.get_rect()[2])
+        text_height = (pre_x_surface.get_rect()[3])
+        #creates text surface based off of dimensions
+        text_surface = pygame.Surface((text_width, text_height))
+        #filling text surface with correct colour (green)
+        text_surface.fill((26,137,14))
+        #getting rect of surface and changing location of it
+        text_rect = text_surface.get_rect()
+        text_rect.midtop = target_location
+        #renders the surfaces to text_surface
+        text_surface.blit(pre_x_surface, (0,0))
+        text_surface.blit(x_surface, (pre_x_surface.get_width(),0))
+        text_surface.blit(post_x_surface, (pre_x_surface.get_width()+x_surface.get_width(),0))
+        #renders to game display
+        self.gameDisplay.blit(text_surface, text_rect)
+
     #draws the quadratic graph to the screen
     def draw_quadratic(self):
         #draw the equation by creating many small lines
@@ -211,30 +255,51 @@ class Game():
         collided = False
         #getting rect of projectile
         proj_rect = self.Projectile.get_rect()
-        for x in self.Target_List:
-            #checking collisons using target
-            collision_bool = x.detect_collision(proj_rect)
-            #if has collided
-            if collision_bool == True:
-                collided = True
-                self.Projectile.reset()
-                #THIS target is hit
-                x.reset()
-                #points for each successful hit
-                self.points += 10 #10 points per hit
-                #creates hit_list
-                hit_list = self.create_hit_list()
-                #checks if level can increase
-                if False not in hit_list:
-                    self.points += 100
-                    self.level+=1
-                    self.unhit_target()
-                    self.increase_difficulty()
-                collided = True
-            else:
-                pass
+        #if projectile hits crate
+        if self.Crate.detect_collision(proj_rect) == True:
+            self.Projectile.reset()
+            self.level += 1
+            self.points += 100
+            self.hide_show_targets(True)
+            self.Crate.set_visible(False)
+            self.Wall.set_visible(False)
+            collided = True
+            self.increase_difficulty()
+        #if projectile hits wall
+        if self.Wall.detect_collision(proj_rect) == True:
+            self.Projectile.reset()
+            self.points -= 100
+            #LOSE??
+            collided = True
+        else:
+            for x in self.Target_List:
+                #checking collisons using target
+                collision_bool = x.detect_collision(proj_rect)
+                #if has collided
+                if collision_bool == True:
+                    collided = True
+                    self.Projectile.reset()
+                    #THIS target is hit
+                    x.reset()
+                    #points for each successful hit
+                    self.points += 10 #10 points per hit
+                    #creates hit_list
+                    hit_list = self.create_hit_list()
+                    #checks if level can increase
+                    if False not in hit_list:
+                        self.points += 100
+                        self.level+=1
+                        self.unhit_target()
+                        self.increase_difficulty()
+                    collided = True
+                else:
+                    pass
         return(collided)
 
+    #hides or shows all the targets
+    def hide_show_targets(self,boolean):
+        for x in self.Target_List:
+            x.set_visible(boolean)
 
     #method to increase the difficulty of the game, takes artificial_level as a default value of 0
     def increase_difficulty(self,artificial_level=0):
@@ -244,15 +309,29 @@ class Game():
         else:
             level = self.level
         #hides quadratic if level correct
+        if level % 5 != 0:
+            self.crate_level = False
         if level >= self.quadratic_hide_level:
             self.show_quadratic_toggle = False
+        if level%5 == 0:
+            print("go")
+            #creates toggle for crate level
+            self.crate_level = True 
+            #hide all the targets
+            self.hide_show_targets(False)
+            #create the crate at new position
+            self.Crate.create_new_location()
+            #create the wall at new position
+            self.Wall.set_visible(True)
         if level in self.add_target_level:
+            #moves start position for next target
             self.next_target_start -= 2/16
             target_start = ((self.screen_dimensions[0]*(self.next_target_start)),self.default_target_start[1])
+            #creates new target
             self.Target_List.append(Target(self.gameDisplay, target_start))
+        #makes each target difficulty higher
         for x in self.Target_List:
             x.collide()                        
-            
 
     #method to move each target in Target_List
     def target_move(self):
@@ -301,6 +380,11 @@ class Game():
                         self.points -= 50
             else:
                 projectile_motion = self.Projectile.move(projectile_motion) #projectile stops when movement stops
+            #handling crate display, has to be after collision detect so self.relative_coords exist
+            self.Crate.display()
+            self.Wall.display()
+            if self.level % 5 == 0:
+                self.relative_coord_display()
             #event handling using pygame events
             for event in pygame.event.get():
                 #if quit
@@ -336,5 +420,5 @@ class Game():
                         projectile_motion = True
 
 
-game = Game((1100,700))
+game = Game((1100,700),10,5,True)
 game.run_game()
