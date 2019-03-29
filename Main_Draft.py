@@ -1,23 +1,5 @@
 #main draft 5 by Miles Burne 19/3/19
 #imports
-'''
-#programatically going through A values
-        while not_found:
-            a_possible = random.randint(0,30)
-            a_possible = -1*(a_possible/1000)
-            #print(a_possible)
-            #programatically going through B values
-            for b_value in range(1,200):
-                b_value = b_value/100
-                #( ( (-1* (b**2) ) / (4*a)) + c) > self.Wall.get_height()
-                #(-1*(c/self.Crate.get_actual_coords()[0])-((self.Crate.get_actual_coords()[0]*a_possible)/b_value)) > math.sqrt((4*a_possible)*(c-self.Wall.get_height()))
-                if(-1*(c/self.Crate.get_actual_coords()[0])-((self.Crate.get_actual_coords()[0]*a_possible)/b_value)) < math.sqrt((4*a_possible)*(c-self.Wall.get_height())):
-                    #therefore inequality is valid
-                    usable = True
-            if usable == True:
-                break
-        self.quad_a = a_possible
-'''
 import pygame
 import random
 import math
@@ -28,6 +10,7 @@ from Target_Module import *
 from Save_Module import *
 from Crate_Module import *
 from Wall_Module import *
+from Indicator_Module import *
 
 #game class to handle the running of the game
 class Game():
@@ -45,6 +28,10 @@ class Game():
         self.Quadratic = 0
         self.Crate = 0
         self.Wall = 0
+        self.Indicators = []
+        #default values for the equation
+        self.default_a = -0.1
+        self.default_b = 80
         #toggle for crate level
         self.crate_level = False
         #creates the target b for the crate
@@ -94,8 +81,7 @@ class Game():
         A_find = ((2/(crate_distance**2))*(ball_height-(2*wall_height)))
         B_find = ((-1/crate_distance)*((A_find*(crate_distance**2)) + ball_height))
         self.quad_a = round(A_find,4)*100
-        self.crate_target_b = round(B_find,1)
-        print(self.crate_target_b)
+        self.crate_target_b = round(B_find,2)
 
     #is run if the game detects it is loaded from a save
     def create_loaded_game(self):
@@ -119,6 +105,51 @@ class Game():
         #pygame.draw.lines(screen, (255,255,255), False, y_list, 2) # y
         pygame.draw.rect(self.gameDisplay, (26,137,14),[0, ((self.s_height/4)*3), (self.s_width), (self.s_height/4)],0) # creates rect for x
 
+    #draws indicators to screen
+    def draw_indicator(self):
+        #if indicators have not been created create them
+        if len(self.Indicators) == 0:
+            #calls create indicators function
+            self.create_indicators()
+        for x in self.Indicators:
+            #draws
+            x.draw_to_screen()
+
+    #creates the position for indicators, indicators are created from TL,TR,BL,BR
+    def create_indicators(self):
+        #gets the center of text
+        target_x= self.gameDisplay.get_rect().centerx         
+        target_y = (self.gameDisplay.get_rect().centery + self.s_height*3/8)
+        #indicator1
+        indicatorTL_y = target_y - (self.quad_text_height)/2 - 25
+        indicatorTL_x = target_x - 140
+        indicatorTL = Indicator(self.gameDisplay,(indicatorTL_x,indicatorTL_y),(232, 48, 60),(26,137,14),light_colour=(252, 67, 67))
+        #indicator2
+        indicatorTR_y = target_y - (self.quad_text_height)/2 - 25
+        indicatorTR_x = target_x + 45
+        indicatorTR = Indicator(self.gameDisplay,(indicatorTR_x,indicatorTR_y),(52, 61, 229),(26,137,14),light_colour=(88,95,221))
+        #indicator3
+        indicatorBL_y = target_y + (self.quad_text_height)/2 + 25
+        indicatorBL_x = target_x + 45
+        indicatorBL = Indicator(self.gameDisplay,(indicatorBL_x,indicatorBL_y),(52, 61, 229),(26,137,14),point_down=True,light_colour=(88,95,221))
+        #indicator4
+        indicatorBR_y = target_y + (self.quad_text_height)/2 + 25
+        indicatorBR_x = target_x - 140
+        indicatorBR = Indicator(self.gameDisplay,(indicatorBR_x,indicatorBR_y),(232, 48, 60),(26,137,14),point_down=True,light_colour=(252, 67, 67))
+        #adds to indicators list
+        self.Indicators = [indicatorTL,indicatorTR,indicatorBL,indicatorBR]
+
+    #switches the colour of the indicators, takes input of indicator reference(TL:1,TR:2,BR:3,BL:4) and "light"/"dark"
+    def change_indicator_colour(self,spec_indicator,colour="dark"):
+        indicator_val = spec_indicator-1
+        #changes colour of corresponding indicators to specified colour  
+        if colour.lower() == "dark":
+            self.Indicators[indicator_val].set_colour(False)
+        elif colour.lower() == "light":
+            self.Indicators[indicator_val].set_colour(True)
+        else:
+            pass #colour will not change
+        
     #this displays the quadratic equation to the screen
     def show_quadratic(self):
         #getting a and b and multiplying by ten to make the program more readable
@@ -164,6 +195,8 @@ class Game():
         #positioning text_rect
         text_rect.centerx = self.gameDisplay.get_rect().centerx         
         text_rect.centery = (self.gameDisplay.get_rect().centery + self.s_height*3/8)
+        #for use in indicator module
+        self.quad_text_height = text_rect[3]
         #renders to game display
         self.gameDisplay.blit(text_surface, text_rect)
 
@@ -204,12 +237,12 @@ class Game():
 
     #draws the relative coords for the crate to the screen
     def relative_coord_display(self):
-        #colour for the x part of coords
+        #colour for the x part of coords (blue)
         x_colour = (19, 62, 219)
         #getting the location of the crate as rect
         crate_location = self.Crate.get_actual_coords()
         #creating the location for the coords display
-        target_location = (crate_location.midbottom[0],crate_location.midbottom[1]+20)
+        target_location = (crate_location.midbottom[0],crate_location.midbottom[1]-2)
         #creating the text to be displayed
         pre_x_string = ("(")
         x_string = str(self.Crate.get_relative_coords()[0])
@@ -217,7 +250,7 @@ class Game():
         #getting font
         pygame.font.init() #init the font module
         font_name = "calibri" #naming the font used 
-        myFont = pygame.font.SysFont(font_name,20) #init the font itself, form(font_name, size)
+        myFont = pygame.font.SysFont(font_name,16) #init the font itself, form(font_name, size)
         #rendering text, creates surface with input: text, anti-alias, rgb colour
         pre_x_surface = myFont.render(pre_x_string, True, (0,0,0)) 
         x_surface = myFont.render(x_string, True, (x_colour))
@@ -227,11 +260,11 @@ class Game():
         text_height = (pre_x_surface.get_rect()[3])
         #creates text surface based off of dimensions
         text_surface = pygame.Surface((text_width, text_height))
-        #filling text surface with correct colour (green)
-        text_surface.fill((26,137,14))
+        #filling text surface with correct colour (brown)
+        text_surface.fill((140,70,0))
         #getting rect of surface and changing location of it
         text_rect = text_surface.get_rect()
-        text_rect.midtop = target_location
+        text_rect.midbottom = target_location
         #renders the surfaces to text_surface
         text_surface.blit(pre_x_surface, (0,0))
         text_surface.blit(x_surface, (pre_x_surface.get_width(),0))
@@ -346,8 +379,19 @@ class Game():
         #hides quadratic if level correct
         if level % 5 != 0:
             self.crate_level = False
+            self.quad_a = self.default_a
+            self.quad_b = self.default_b
         if level >= self.quadratic_hide_level:
             self.show_quadratic_toggle = False
+        if level in self.add_target_level:
+            #moves start position for next target
+            self.next_target_start -= 2/16
+            target_start = ((self.screen_dimensions[0]*(self.next_target_start)),self.default_target_start[1])
+            #creates new target
+            self.Target_List.append(Target(self.gameDisplay, target_start))
+        #makes each target difficulty higher
+        for x in self.Target_List:
+            x.collide()   
         if level%5 == 0:
             #print("go")
             #creates toggle for crate level
@@ -360,15 +404,7 @@ class Game():
             self.create_crate_equation()
             #create the wall at new position
             self.Wall.set_visible(True)
-        if level in self.add_target_level:
-            #moves start position for next target
-            self.next_target_start -= 2/16
-            target_start = ((self.screen_dimensions[0]*(self.next_target_start)),self.default_target_start[1])
-            #creates new target
-            self.Target_List.append(Target(self.gameDisplay, target_start))
-        #makes each target difficulty higher
-        for x in self.Target_List:
-            x.collide()                        
+                             
 
     #method to move each target in Target_List
     def target_move(self):
@@ -387,8 +423,18 @@ class Game():
         projectile_motion = False
         #creates the main game loop
         running = True
+        #key checker to ensure not too fast
+        key_checker = 0
+        #starts game clock to keep fps locked
+        clock = pygame.time.Clock()
+        #variables to control indicator colour ticks
+        K_UP_TRI = 0
+        K_DOWN_TRI = 0
+        K_LEFT_TRI = 0
+        K_RIGHT_TRI = 0
         while running:
-            #print(self.quad_a)
+            #caps fps to value
+            clock.tick(100)
             #updates screen after every gameloop
             pygame.display.flip()
             #draws the main screen to prevent overlaps
@@ -400,6 +446,8 @@ class Game():
             if self.show_quadratic_toggle == True:
                 self.draw_quadratic()
             self.show_quadratic()
+            #draws indicators
+            self.draw_indicator()
             #draws the level and points to the screen
             self.levelpoint_display()
             #moves target
@@ -421,6 +469,32 @@ class Game():
             self.Wall.display()
             if self.level % 5 == 0:
                 self.relative_coord_display()
+            '''
+            #handling held keys
+            keys_pressed = pygame.key.get_pressed()
+            if keys_pressed[pygame.K_LEFT] == True and projectile_motion == False:
+                if key_checker == 0:
+                    key_checker = 0
+                    self.quad_b -= 1
+            elif keys_pressed[pygame.K_RIGHT] == True and projectile_motion == False:
+                if key_checker == 0:
+                    key_checker = 0
+                    self.quad_b += 1
+            elif keys_pressed[pygame.K_UP] == True and projectile_motion == False:
+                if key_checker == 0 and self.level%5 != 0:
+                    key_checker = 0
+                    self.quad_a += 0.01
+            elif keys_pressed[pygame.K_DOWN] == True and projectile_motion == False:
+                if key_checker == 0 and self.level%5 != 0:
+                    print("pressed")
+                    key_checker = 0
+                    self.quad_a -= 0.01
+            if self.quad_a > 0:
+                        self.quad_a = 0
+            #key_checker to ensure that the values dont update too fast
+            if key_checker < 10:
+                key_checker += 0
+            '''
             #event handling using pygame events
             for event in pygame.event.get():
                 #if quit
@@ -434,34 +508,76 @@ class Game():
                     if event.key == pygame.K_ESCAPE:
                         running = False
                         break
-
+                    
                     #changing A
                     if self.level % 5 != 0:
                         if event.key == pygame.K_UP and projectile_motion == False:
                             self.quad_a += 0.01
+                            K_UP_TRI = 5
+                            #switches indicator colour to light
+                            self.change_indicator_colour(1,"light")
                         if event.key == pygame.K_DOWN and projectile_motion == False:
                             self.quad_a -= 0.01
+                            K_DOWN_TRI = 5
+                            #switches indicator colour to light
+                            self.change_indicator_colour(4,"light")
                     #making sure that A is in a valid range, only needs to change when A is changed
                     if self.quad_a > 0:
                         self.quad_a = 0
                     
                     #changing B
                     if event.key == pygame.K_LEFT and projectile_motion == False:
+                        K_LEFT_TRI = 5
                         if self.level % 5 != 0:
                             self.quad_b -= 1
+                            #switches indicator colour to light
+                            self.change_indicator_colour(3,"light")
                         else:
                             self.quad_b -= 1
+                            #switches indicator colour to light
+                            self.change_indicator_colour(3,"light")
                     if event.key == pygame.K_RIGHT and projectile_motion == False:
+                        K_RIGHT_TRI = 5
                         if self.level % 5 != 0:
                             self.quad_b += 1
+                            #switches indicator colour to light
+                            self.change_indicator_colour(2,"light")
                         else:
                             self.quad_b += 1
+                            #switches indicator colour to light
+                            self.change_indicator_colour(2,"light")
                     
                     #launching projectile
                     if event.key == pygame.K_SPACE:
                         #launch projectile
                         projectile_motion = True
+                        
+            #switches all indicators back to dark
+            #up control
+            if K_UP_TRI == 0:
+                self.change_indicator_colour(1,"dark")
+            else:
+                K_UP_TRI -= 1
+            #up control
+            if K_DOWN_TRI == 0:
+                self.change_indicator_colour(4,"dark")
+            else:
+                K_DOWN_TRI -= 1
+            #up control
+            if K_LEFT_TRI == 0:
+                self.change_indicator_colour(3,"dark")
+            else:
+                K_LEFT_TRI -= 1
+            #up control
+            if K_RIGHT_TRI == 0:
+                self.change_indicator_colour(2,"dark")
+            else:
+                K_RIGHT_TRI -= 1
+
+                    
 
 
-game = Game((1100,700),10,5,True)
+game = Game((1100,700))
 game.run_game()
+pygame.quit()
+
