@@ -1,4 +1,4 @@
-#main draft 5 by Miles Burne 19/3/19
+#main draft 6 by Miles Burne 19/3/19
 #imports
 import pygame
 import random
@@ -46,6 +46,8 @@ class Game():
         self.next_target_start = 15/16
         #creates the game, also calls 'create_loaded_game' if the game has been loaded from a save
         self.create_game()
+        #counter for detecting the loss
+        self.loss_counter = 0
         #checking if game has been created from a save or not
         if from_save == True:
             self.create_loaded_game()
@@ -322,6 +324,7 @@ class Game():
         proj_rect = self.Projectile.get_rect()
         #if projectile hits crate
         if self.Crate.detect_collision(proj_rect) == True:
+            self.loss_counter = 0 #hit therefore resetting counter
             self.Projectile.reset()
             self.level += 1
             self.points += 100
@@ -334,7 +337,7 @@ class Game():
         if self.Wall.detect_collision(proj_rect) == True:
             self.Projectile.reset()
             self.points -= 100
-            #LOSE??
+            self.loss_counter += 1
             collided = True
         else:
             for x in self.Target_List:
@@ -342,6 +345,7 @@ class Game():
                 collision_bool = x.detect_collision(proj_rect)
                 #if has collided
                 if collision_bool == True:
+                    self.loss_counter = 0 #hit therefore resetting counter
                     collided = True
                     self.Projectile.reset()
                     #THIS target is hit
@@ -464,16 +468,22 @@ class Game():
             self.levelpoint_display()
             #moves target
             self.target_move()
+            #detecting loss
+            if self.loss_counter == 3:
+                #lose game is missed so many times
+                return(self.lose_game())
             #collision detection
             if projectile_motion == True:
                 collision = self.detect_collision()
-                if collision == True: #therefore points have increased and collision has happened
+                if collision == True: #therefore collision has happened
                     projectile_motion = False
                 #in case of no collision
                 else:
                     projectile_motion = self.Projectile.move(projectile_motion) #projectile stops when movement stops
+                    #therefore has missed
                     if projectile_motion == False:
-                        self.points -= 50
+                        self.points -= 50 #missed so losing points
+                        self.loss_counter += 1 
             else:
                 projectile_motion = self.Projectile.move(projectile_motion) #projectile stops when movement stops
             #handling crate display, has to be after collision detect so self.relative_coords exist
@@ -724,7 +734,9 @@ class Menu():
         if save_bool == True:
             self.save.save(points,level)
         else:
-            self.set_screen(3)        
+            self.set_screen(3)
+            #deletes file
+            self.save.delete()
     
     #starts a new game
     def new_game(self):
@@ -736,13 +748,13 @@ class Menu():
             self.save.save(points,level)
         else:
             self.set_screen(3)
+            #deletes file
+            self.save.delete()
     
     #qutis the game
     def quit_game(self):
         self.pygame.quit()
         quit()
-
-    #displays main title
         
     #main method, starts main menu
     def main_menu(self):

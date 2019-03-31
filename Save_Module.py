@@ -4,7 +4,15 @@ class Save_Game():
     #init
     def __init__(self):
         self.filename = "save_file.txt" #save file name
+        #importing os locally
+        import os
+        self.os = os
 
+    #method to delete the save file
+    def delete(self):
+        #uses os.remove to remove file
+        self.os.remove(self.filename)
+        
     #method used to save the players score and level, takes input of score,level
     def save(self, score, level):
         #wipes the save file
