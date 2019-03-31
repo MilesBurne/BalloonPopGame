@@ -1,7 +1,4 @@
 #File Handling Class by Miles Burne 8/3/19
-
-import datetime
-
 #class used to save the game, takes no values to initilise, has two public methods, save and load, and one private method load_data_handle
 class Save_Game():
     #init
@@ -14,9 +11,13 @@ class Save_Game():
         file = open(self.filename, 'w+')
         file.truncate(0)
         file.close()
+
+        #imports datetime locally
+        import datetime
+        self.datetime = datetime
         
         #preparing necessary variables for the saving
-        time_stamp = str(datetime.datetime.now())
+        time_stamp = str(self.datetime.datetime.now())
         total_check = str(((score+level)**3)/2) #used to check the total of score and level as (total**3)/2 to verify file
         save_score = str(score)
         save_level = str(level)
@@ -45,9 +46,18 @@ class Save_Game():
         #return statement, if file is not present program does not reach this line
         return(self.__load_data_handle(content))
             
-
-        
-        
+    #function to display if file present, returns False if false
+    def is_file_present(self):
+        #reads file contents and closes it, also checks if file is present #FileNotFoundError
+        file_present = True
+        try:
+            file = open(self.filename,"r")
+            file.close()
+        #file not present
+        except FileNotFoundError:
+            file_present = False
+        return(file_present)
+            
     #private method to handle the content handling of the load class, returns [score,level], or 0 if data is invalid 
     def __load_data_handle(self,content):
         #strips superflous data and makes it readable ###ValueError
@@ -72,14 +82,5 @@ class Save_Game():
         if data_valid == False:
             return(0)
         else:
-            return([load_score,load_level])
-
-
-def __main__():
-    save_class = Save_Game()
-    save_class.save(500,3) #score: 500, level: 3
-    input()
-    data = save_class.load()
-    print(data)
-    input()
+            return(load_score,load_level)
 

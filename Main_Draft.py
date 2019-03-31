@@ -15,11 +15,11 @@ from Indicator_Module import *
 #game class to handle the running of the game
 class Game():
     #init, takes screen dimensions as (width,height), and points and level
-    def __init__(self,screen_dimensions,points=0,level=1,from_save=False):
-        #getting dimensions for screen
-        self.screen_dimensions = screen_dimensions
-        self.s_width, self.s_height = screen_dimensions[0], screen_dimensions[1]
-        self.gameDisplay = 0 #this will hold the screen surface
+    def __init__(self,gameDisplay,points=0,level=1,from_save=False):
+        #getting size of screen
+        self.s_width, self.s_height = pygame.display.Info().current_w, pygame.display.Info().current_h
+        self.screen_dimensions = (self.s_width,self.s_height)
+        self.gameDisplay = gameDisplay #this will hold the screen surface
         self.points = points
         self.level = level
         #references to objects
@@ -29,9 +29,9 @@ class Game():
         self.Crate = 0
         self.Wall = 0
         self.Indicators = []
-        #default values for the equation
-        self.default_a = -0.1
-        self.default_b = 80
+        #previously used values used to replace values after the crate levels
+        self.prev_a = -0.1
+        self.prev_b = 80
         #toggle for crate level
         self.crate_level = False
         #creates the target b for the crate
@@ -91,18 +91,9 @@ class Game():
         
     #creates the board and draws the axes
     def draw_game(self):
-        #make screen
-        self.gameDisplay = pygame.display.set_mode((self.s_width, self.s_height))
-        
         #fill
         self.gameDisplay.fill((34,161,235))
-
-        #axes creation
-        #y_list = [(0,0),(0,s_height)]
-        #x_list = [(0,((s_height/4)*3)),(s_width,((s_height/4)*3))]
-
-        #axes initialisation
-        #pygame.draw.lines(screen, (255,255,255), False, y_list, 2) # y
+        #creates green
         pygame.draw.rect(self.gameDisplay, (26,137,14),[0, ((self.s_height/4)*3), (self.s_width), (self.s_height/4)],0) # creates rect for x
 
     #draws indicators to screen
@@ -112,6 +103,12 @@ class Game():
             #calls create indicators function
             self.create_indicators()
         for x in self.Indicators:
+            #up and down indicators should be shaded on every 5th level
+            if (x.get_direction() == "u" or x.get_direction() == "d") and self.level % 5 == 0:
+                x.set_shaded(True)
+            #otherwise normal colour
+            else:
+                x.set_shaded(False)
             #draws
             x.draw_to_screen()
 
@@ -123,19 +120,19 @@ class Game():
         #indicator1
         indicatorTL_y = target_y - (self.quad_text_height)/2 - 25
         indicatorTL_x = target_x - 140
-        indicatorTL = Indicator(self.gameDisplay,(indicatorTL_x,indicatorTL_y),(232, 48, 60),(26,137,14),light_colour=(252, 67, 67))
+        indicatorTL = Indicator(self.gameDisplay,(indicatorTL_x,indicatorTL_y),(232, 48, 60),(26,137,14),direction="u",light_colour=(252, 67, 67))
         #indicator2
         indicatorTR_y = target_y - (self.quad_text_height)/2 - 25
-        indicatorTR_x = target_x + 45
-        indicatorTR = Indicator(self.gameDisplay,(indicatorTR_x,indicatorTR_y),(52, 61, 229),(26,137,14),light_colour=(88,95,221))
+        indicatorTR_x = target_x + 50
+        indicatorTR = Indicator(self.gameDisplay,(indicatorTR_x,indicatorTR_y),(52, 61, 229),(26,137,14),direction="r",light_colour=(88,95,221))
         #indicator3
         indicatorBL_y = target_y + (self.quad_text_height)/2 + 25
-        indicatorBL_x = target_x + 45
-        indicatorBL = Indicator(self.gameDisplay,(indicatorBL_x,indicatorBL_y),(52, 61, 229),(26,137,14),point_down=True,light_colour=(88,95,221))
+        indicatorBL_x = target_x + 50
+        indicatorBL = Indicator(self.gameDisplay,(indicatorBL_x,indicatorBL_y),(52, 61, 229),(26,137,14),direction="l",light_colour=(88,95,221))
         #indicator4
         indicatorBR_y = target_y + (self.quad_text_height)/2 + 25
         indicatorBR_x = target_x - 140
-        indicatorBR = Indicator(self.gameDisplay,(indicatorBR_x,indicatorBR_y),(232, 48, 60),(26,137,14),point_down=True,light_colour=(252, 67, 67))
+        indicatorBR = Indicator(self.gameDisplay,(indicatorBR_x,indicatorBR_y),(232, 48, 60),(26,137,14),direction="d",light_colour=(252, 67, 67))
         #adds to indicators list
         self.Indicators = [indicatorTL,indicatorTR,indicatorBL,indicatorBR]
 
@@ -376,13 +373,15 @@ class Game():
             level = artificial_level
         else:
             level = self.level
-        #hides quadratic if level correct
-        if level % 5 != 0:
+        #if prev level was crate level, replaces equation with previous
+        if (level-1) % 5 == 0:
             self.crate_level = False
-            self.quad_a = self.default_a
-            self.quad_b = self.default_b
+            self.quad_a = float(self.prev_a)
+            self.quad_b = float(self.prev_b)
+        #if level greater than minimum hide quadratic level, then hides quadratic
         if level >= self.quadratic_hide_level:
             self.show_quadratic_toggle = False
+        #if level is in the add target level list
         if level in self.add_target_level:
             #moves start position for next target
             self.next_target_start -= 2/16
@@ -392,8 +391,11 @@ class Game():
         #makes each target difficulty higher
         for x in self.Target_List:
             x.collide()   
+        #if 5 is a factor of level number, it is crate level
         if level%5 == 0:
-            #print("go")
+            #saves previous equation
+            self.prev_a = str(self.quad_a)
+            self.prev_b = str(self.quad_b)
             #creates toggle for crate level
             self.crate_level = True 
             #hide all the targets
@@ -404,6 +406,13 @@ class Game():
             self.create_crate_equation()
             #create the wall at new position
             self.Wall.set_visible(True)
+        #otherwise normal level
+        else:
+            #disables all objects in crate level
+            self.crate_level = False
+            self.hide_show_targets(True)
+            self.Wall.set_visible(False)
+            self.Crate.set_visible(False)
                              
 
     #method to move each target in Target_List
@@ -415,7 +424,11 @@ class Game():
 
     #returns points and level if the game is quit before loss
     def save_game(self):
-        return(self.points,self.level)
+        return(self.points,self.level,True) #returns points, level and boolean to say game has been quit by user
+
+    #called if the game is lost
+    def lose_game(self):
+        return(self.points,self.level,False) #returns points, level and boolean to say game has been lost
         
     #main portion of the game, acts as a main loop
     def run_game(self):
@@ -441,7 +454,6 @@ class Game():
             self.draw_game()
             #updates quadratic with new values using the make_quadratic function and an optional value
             self.make_quadratic(self.quad_a,self.quad_b)
-            #print(self.Quadratic.get_a())
             #draws the quadratic path and equation for the first time, shows quadratic if toggle is true
             if self.show_quadratic_toggle == True:
                 self.draw_quadratic()
@@ -469,46 +481,22 @@ class Game():
             self.Wall.display()
             if self.level % 5 == 0:
                 self.relative_coord_display()
-            '''
-            #handling held keys
-            keys_pressed = pygame.key.get_pressed()
-            if keys_pressed[pygame.K_LEFT] == True and projectile_motion == False:
-                if key_checker == 0:
-                    key_checker = 0
-                    self.quad_b -= 1
-            elif keys_pressed[pygame.K_RIGHT] == True and projectile_motion == False:
-                if key_checker == 0:
-                    key_checker = 0
-                    self.quad_b += 1
-            elif keys_pressed[pygame.K_UP] == True and projectile_motion == False:
-                if key_checker == 0 and self.level%5 != 0:
-                    key_checker = 0
-                    self.quad_a += 0.01
-            elif keys_pressed[pygame.K_DOWN] == True and projectile_motion == False:
-                if key_checker == 0 and self.level%5 != 0:
-                    print("pressed")
-                    key_checker = 0
-                    self.quad_a -= 0.01
-            if self.quad_a > 0:
-                        self.quad_a = 0
-            #key_checker to ensure that the values dont update too fast
-            if key_checker < 10:
-                key_checker += 0
-            '''
+
             #event handling using pygame events
             for event in pygame.event.get():
                 #if quit
                 if event.type == pygame.QUIT:
-                    running = False
-                    break
+                    #if the game is quit without a loss, game data is returned
+                    return(self.save_game())
+                    
 
                 #if keyboard press
                 if event.type == pygame.KEYDOWN:
                     #if key is escape
                     if event.key == pygame.K_ESCAPE:
-                        running = False
-                        break
-                    
+                        #if the game is quit without a loss, game data is returned
+                        return(self.save_game())
+                        
                     #changing A
                     if self.level % 5 != 0:
                         if event.key == pygame.K_UP and projectile_motion == False:
@@ -574,10 +562,234 @@ class Game():
             else:
                 K_RIGHT_TRI -= 1
 
-                    
+#Menu Class
+class Menu():
+    #init
+    def __init__(self):
+        #importing pygame locally
+        import pygame
+        self.pygame = pygame
+
+        #imports save module and button module locally
+        import Save_Module
+        self.save = Save_Module.Save_Game() #creates Save_Game instance
+        import Button_Module
+        self.Button_Module = Button_Module
+        
+        #makes game display
+        self.screen_size = (1100,700)
+        self.gameDisplay = self._create_display()
+
+        #game display sizes
+        self.s_width, self.s_height = self.pygame.display.Info().current_w, self.pygame.display.Info().current_h
 
 
-game = Game((1100,700))
-game.run_game()
-pygame.quit()
+        #array holding each button position
+        self.button_positions = ()
 
+        #creates buttons
+        self._create_buttons()
+
+        #lose image creation
+        self.loseImage = self._load_image("Lose.png")
+        self.loseRect = self.loseImage.get_rect()
+        self.loseRect.centerx, self.loseRect.centery = 550,200
+
+        #title image creation
+        self.titleImage = self._load_image("Title.png")
+        self.titleRect = self.titleImage.get_rect()
+        self.titleRect.centerx, self.titleRect.centery = 580,200
+        #display image array
+        self.display_images = [0,self.titleImage,self.titleImage,self.loseImage]
+        self.display_image_rect = [0,self.titleRect,self.titleRect,self.loseRect]
+        self.currentImage = self.titleImage #holds current image to be displayed
+        self.current_image_rect = self.titleRect
+        
+    #private method to get the image for the projectile surface
+    def _load_image(self,filename):
+        #loads file, if fails to load game is quit after displaying an error
+        try:
+            image = self.pygame.image.load(filename)
+        except ImportError:
+            print("Error: File '"+filename+"' is not present")
+            quit()
+        #returning image
+        return(image)
+
+    #creates buttons
+    def _create_buttons(self):
+        #creates pos for buttons
+        l_button_pos = (200,400)
+        r_button_pos = (700,400)
+        #colours for buttons
+        d_green = (54,196,54)
+        l_green = (58,216,58)
+        d_red = (232, 48, 60)
+        l_red = (252, 67, 67)
+        #play button
+        self.play_button = self.Button_Module.Button(self.gameDisplay,"Play",l_button_pos,d_green,l_green)
+        #exit button
+        self.exit_button = self.Button_Module.Button(self.gameDisplay,"Exit",r_button_pos,d_red,l_red)
+        #new_game button
+        self.new_button = self.Button_Module.Button(self.gameDisplay,"New Game",l_button_pos,d_green,l_green)
+        #load_game button
+        self.load_button = self.Button_Module.Button(self.gameDisplay,"Load Game",r_button_pos,d_green,l_green)
+        #menu button
+        self.menu_button = self.Button_Module.Button(self.gameDisplay,"Main Menu",l_button_pos,d_green,l_green)
+        #creates buttons arrays
+        self.screen_1 = [self.play_button,self.exit_button]
+        self.screen_2 = [self.new_button,self.load_button]
+        self.screen_3 = [self.menu_button,self.exit_button]
+        self.screens = [0,self.screen_1,self.screen_2,self.screen_3]
+        #array with all buttons
+        self.buttons = [self.play_button,self.exit_button,self.new_button,self.load_button,self.menu_button]
+
+    #handle actions for each button
+    def handle_action(self,action_index):
+        #if play button pressed
+        if action_index == 0:
+            self.set_screen(2)
+        #if exit button pressed
+        elif action_index == 1:
+            self.quit_game()
+        #if new button pressed
+        elif action_index == 2:
+            self.new_game()
+        #if load button pressed
+        elif action_index == 3:
+            self.load_game()
+        elif action_index == 4:
+            self.set_screen(1)
+            
+    #switches between screens
+    def set_screen(self,screen_number):
+        #sets current display images
+        self.currentImage = self.display_images[screen_number]
+        self.current_image_rect = self.display_image_rect[screen_number]
+        #loops through buttons on screen
+        for x in self.screens[screen_number]:
+            #special case for load game text
+            if x.get_text() != "Load Game":
+                x.set_on_screen(True) 
+            #if file for load is present 
+            elif self.save.is_file_present() == True:
+                x.set_on_screen(True) 
+            #otherwise dont show
+            else:
+                x.set_on_screen(False)
+            #loop through other buttons
+            for y in self.buttons:
+                #if button not on screen
+                if y not in self.screens[screen_number]:
+                    y.set_on_screen(False)
+
+    #displays buttons
+    def display_buttons(self):
+        #loop through buttons
+        for x in self.buttons:
+            x.display() #displays
+
+    #handles hovering over buttons
+    def hover_handle(self):
+        for x in self.buttons:
+            x.is_hover()
+    
+    #creates gameDisplay
+    def _create_display(self):
+        #make screen
+        gameDisplay = self.pygame.display.set_mode(self.screen_size)
+        return(gameDisplay)
+                                                     
+    #draws gameDisplay
+    def draw_display(self):
+        #fill
+        self.gameDisplay.fill((34,161,235))
+        #creates green box
+        self.pygame.draw.rect(self.gameDisplay, (26,137,14),[0, ((self.s_height/4)*3), (self.s_width), (self.s_height/4)],0) # creates rect for x
+
+    #draws title
+    def draw_images(self):
+        #draws image
+        self.gameDisplay.blit(self.currentImage, self.current_image_rect)
+    
+    #starts a loaded game from save function
+    def load_game(self):
+        #preparing values from save
+        points, level = self.save.load()
+        loaded = True
+        #instance of game
+        game = Game(self.gameDisplay,points,level,loaded)
+        self.set_screen(1) #sets screen to main menu
+        points,level,save_bool = game.run_game() #runs game and waits for return of boolean with save data
+        if save_bool == True:
+            self.save.save(points,level)
+        else:
+            self.set_screen(3)        
+    
+    #starts a new game
+    def new_game(self):
+        #creates game instance
+        game = Game(self.gameDisplay)
+        self.set_screen(1)
+        points,level,save_bool = game.run_game()
+        if save_bool == True:
+            self.save.save(points,level)
+        else:
+            self.set_screen(3)
+    
+    #qutis the game
+    def quit_game(self):
+        self.pygame.quit()
+        quit()
+
+    #displays main title
+        
+    #main method, starts main menu
+    def main_menu(self):
+        #sets first screen
+        self.set_screen(1)
+        #creates menu loop
+        menu_loop = True
+        #starts loop
+        while menu_loop:
+            self.pygame.display.flip()
+            #draws game board
+            self.draw_display()
+            #draws title
+            self.draw_images()
+            #displays buttons
+            self.display_buttons()
+            #handles the hover of the mouse
+            self.hover_handle()
+            #event handling
+            for event in self.pygame.event.get():
+                #if quit
+                if event.type == self.pygame.QUIT:
+                    self.pygame.quit()
+                    quit()
+                #if keyboard quit
+                if event.type == self.pygame.KEYDOWN:
+                    #if key is escape
+                    if event.key == self.pygame.K_ESCAPE:
+                        self.pygame.quit()
+                        quit()
+                #if mouse pressed
+                if event.type == self.pygame.MOUSEBUTTONDOWN:
+                    #sets button pressed to 0
+                    button_pressed = 0
+                    #find which button pressed
+                    for x in self.buttons:
+                        #if mouse over button
+                        if x.is_hover() == True:
+                            button_pressed = x                            
+                    #action number is index of action in array
+                    if button_pressed != 0:
+                        action_number = self.buttons.index(button_pressed)
+                        #call handle_action
+                        self.handle_action(action_number)
+                    else:
+                        pass
+    
+
+menu = Menu()
+menu.main_menu()
