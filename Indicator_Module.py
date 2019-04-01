@@ -49,6 +49,48 @@ class Indicator():
         self.blitting_surface = 0
         self._create_rect()
 
+    #hides or shows the surface
+    def set_visible(self, boolean):
+        self.on_screen = boolean
+
+    #sets the colour to light or dark
+    def set_colour(self,light_colour=False):
+        self.current_light = light_colour
+
+    #returns direction of indicator
+    def get_direction(self):
+        return(self.direction)
+
+    #sets the whether the indicator is shaded or not
+    def set_shaded(self,boolean):
+        #indicator should be shaded
+        if boolean == True:
+            #sets used colour to shaded
+            self.colour = self.shade_colour_dark
+            self.light_colour = self.shade_colour_light
+        #otherwise colours need to be normal
+        else:
+            #sets colour to default
+            self.colour = self.default_dark_colour
+            self.light_colour = self.default_light_colour
+
+    #displays the indicator
+    def draw_to_screen(self):
+        #if colour meant to be light
+        if self.current_light == True:
+            used_colour = self.light_colour
+        #if colour dark
+        else:
+            used_colour = self.colour
+        #filling surface with background colour
+        self.blitting_surface.fill(self.background_colour)
+        #drawing triangle to surface
+        self.pygame.draw.polygon(self.blitting_surface,used_colour,self.tri_point_list) #width = 0 therefore closed
+        #drawing to game surface
+        temp_rect = self.blitting_surface.get_rect()
+        temp_rect.center = self.position
+        self.gameDisplay.blit(self.blitting_surface,temp_rect)
+
     #creates the rect
     def _create_rect(self):
         #changing size based on direction
@@ -77,4 +119,4 @@ class Indicator():
         #if points right
         elif self.direction == "r":
             #creating the triangle pointlist for use in draw function
-            self.tri_point_list = (surface_rect.topleft,surface_rect.bottomleft,surface_rect.midrigh
+            self.tri_point_list = (surface_rect.topleft,surface_rect.bottomleft,surface_rect.midright)

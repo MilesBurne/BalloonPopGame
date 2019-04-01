@@ -762,10 +762,15 @@ class Menu():
         self.set_screen(1)
         #creates menu loop
         menu_loop = True
+        #sets fps with pygame clock
+        clock = pygame.time.Clock()
         #starts loop
         while menu_loop:
+            #setting fps
+            clock.tick(100)
+            #updates game surface
             self.pygame.display.flip()
-            #draws game board
+            #draws game surface
             self.draw_display()
             #draws title
             self.draw_images()
@@ -802,6 +807,5 @@ class Menu():
                     else:
                         pass
     
-
 menu = Menu()
 menu.main_menu()
