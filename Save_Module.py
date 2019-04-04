@@ -10,8 +10,12 @@ class Save_Game():
 
     #method to delete the save file
     def delete(self):
-        #uses os.remove to remove file
-        self.os.remove(self.filename)
+        #cannot remove file if file not present
+        if self.is_file_present() == True:
+            #uses os.remove to remove file
+            self.os.remove(self.filename)
+        else:
+            pass
         
     #method used to save the players score and level, takes input of score,level
     def save(self, score, level):

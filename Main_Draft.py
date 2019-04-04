@@ -1,4 +1,4 @@
-#main draft 6 by Miles Burne 19/3/19
+#Final Product by Miles Burne 1/4/19
 #imports
 import pygame
 import random
@@ -593,12 +593,17 @@ class Menu():
         #game display sizes
         self.s_width, self.s_height = self.pygame.display.Info().current_w, self.pygame.display.Info().current_h
 
-
         #array holding each button position
         self.button_positions = ()
 
         #creates buttons
         self._create_buttons()
+
+        #variable to denote the current screen
+        self.current_screen = 1
+
+        #variable to hold the surface text of the points and level
+        self.p_s_surface = 0
 
         #lose image creation
         self.loseImage = self._load_image("Lose.png")
@@ -673,6 +678,8 @@ class Menu():
             
     #switches between screens
     def set_screen(self,screen_number):
+        #sets the current_screen attribute
+        self.current_screen = screen_number
         #sets current display images
         self.currentImage = self.display_images[screen_number]
         self.current_image_rect = self.display_image_rect[screen_number]
@@ -734,6 +741,7 @@ class Menu():
         if save_bool == True:
             self.save.save(points,level)
         else:
+            self.create_display_lose(points,level)
             self.set_screen(3)
             #deletes file
             self.save.delete()
@@ -747,6 +755,7 @@ class Menu():
         if save_bool == True:
             self.save.save(points,level)
         else:
+            self.create_display_lose(points,level)
             self.set_screen(3)
             #deletes file
             self.save.delete()
@@ -755,7 +764,52 @@ class Menu():
     def quit_game(self):
         self.pygame.quit()
         quit()
-        
+
+    #displays the score and level on the lose screen
+    def create_display_lose(self,points,level):
+        #creates text to be displayed to the user
+        points_text = ("Points: ")
+        points_val = str(points)
+        level_text = ("Level: ")
+        level_val = str(level)
+        #getting font
+        font_size = 40 #sets font size
+        pygame.font.init() #init font module
+        font_name = "calibri" #names font used
+        myFont = pygame.font.SysFont(font_name,font_size) #creates font itself
+        #renders text to create text_surface
+        text_colour = (0,0,0)
+        level_points_colour = (239, 26, 26)
+        #creates text surfaces
+        points_text_surface = myFont.render(points_text,True,text_colour)
+        points_val_surface = myFont.render(points_val,True,level_points_colour)
+        level_text_surface = myFont.render(level_text,True,text_colour)
+        level_val_surface = myFont.render(level_val,True,level_points_colour)
+        #creates rects from surfaces
+        points_text_rect = points_text_surface.get_rect() 
+        points_val_rect = points_val_surface.get_rect()
+        level_text_rect = level_text_surface.get_rect() 
+        level_val_rect = level_val_surface.get_rect()
+        #creates surface to house the two other surfaces
+        blitting_surface = pygame.Surface((max(points_text_rect.w+points_val_rect.w,level_text_rect.w+level_val_rect.w),(points_text_rect.h+level_text_rect.h)))
+        #fills surface with correct colour
+        blitting_surface.fill((34,161,235))
+        #blits the two surfaces onto surface
+        blitting_surface.blit(points_text_surface,(0,0))
+        blitting_surface.blit(points_val_surface,(points_text_rect.w,0))
+        blitting_surface.blit(level_text_surface,(14,points_text_rect.h))
+        blitting_surface.blit(level_val_surface,(14+level_text_rect.w,points_text_rect.h)) #+14 to ensure that the colons line up
+        #saves blitting surface as self
+        self.p_s_surface = blitting_surface
+
+    #displays the points and level reached by the user after they lose
+    def display_lose(self):
+        #creates rect as location to blit object
+        display_rect = self.p_s_surface.get_rect()
+        display_rect.center = (550,350) #sets location for blitting
+        #blits
+        self.gameDisplay.blit(self.p_s_surface,display_rect)
+    
     #main method, starts main menu
     def main_menu(self):
         #sets first screen
@@ -778,6 +832,9 @@ class Menu():
             self.display_buttons()
             #handles the hover of the mouse
             self.hover_handle()
+            #displays score and level if the player has lost the game
+            if self.current_screen == 3:
+                self.display_lose()
             #event handling
             for event in self.pygame.event.get():
                 #if quit
